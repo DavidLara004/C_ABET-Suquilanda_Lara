@@ -2,6 +2,7 @@
 #include <string.h>
 struct datos
 {
+    
     char nombre[20];
     int cantidad;
     float produccion;
