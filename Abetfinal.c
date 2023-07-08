@@ -10,12 +10,12 @@ struct datos
 };
 int main()
 {
-    struct datos p[2];
-    char nom[20], linea[100];
-    int cant, filborr, cont=0, cont2=1;
-    float prod, vent, gana[2];
+    struct datos p[3];
+    char nom[20], nomnue[20], linea[100], lineatemp[100];
+    int cant, cantnue, filborr, filmod, cont = 0, cont2 = 1, cont3 = 1;
+    float prod, prodnue, vent, ventnue, gana[3], gananue;
     FILE *archivo, *temporal;
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         printf("Ingresa el nombre del produccto: ");
         scanf("%s", &nom);
@@ -37,7 +37,7 @@ int main()
         p[i].ganancia = gana[i];
     }
     archivo = fopen("prod.csv", "w");
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
     {
         fprintf(archivo, "%s; ", p[i].nombre);
         fprintf(archivo, "%d; ", p[i].cantidad);
@@ -63,12 +63,11 @@ int main()
         }
         fclose(archivo);
     }
-    
 
     // borrado de fila
     archivo = fopen("prod.csv", "r");
     temporal = fopen("temporal.csv", "w");
-    printf("Ingrese el numero de linea que desea modificar: ");
+    printf("Ingrese el numero de linea que desea eliminar: ");
     scanf("%d", &filborr);
     if (archivo && temporal)
     {
@@ -78,7 +77,57 @@ int main()
             {
                 fprintf(temporal, "%s", linea);
             }
+            else
+            {
+                if (cont2 == filborr)
+                {
+                    printf("La linea numero %d: '%s' ha sido eliminada\n", filborr, linea);
+                }
+            }
             cont2++;
+        }
+        fclose(archivo);
+        fclose(temporal);
+        remove("prod.csv");
+        rename("temporal.csv", "prod.csv");
+    }
+
+    // Modificacion de filas:
+    archivo = fopen("prod.csv", "r");
+    temporal = fopen("temporal.csv", "w");
+    printf("Ingrese el numero de linea que desea modificar: ");
+    scanf("%d", &filmod);
+    if (archivo && temporal)
+    {
+        while (fgets(linea, sizeof(linea), archivo))
+        {
+            if (cont3 == filmod)
+            {
+                printf("A continuacion ingrese los nuevos que desea reemplazar con la modificacion\n");
+                printf("Ingresa el nombre del nuevo producto: ");
+                scanf("%s", &nomnue);
+                fflush(stdin);
+                printf("Ingresa la cantidad de elementos del nuevo producto: ");
+                scanf("%d", &cantnue);
+                fflush(stdin);
+                printf("Ingresa el precio unitario del nuevo produccto: ");
+                scanf("%f", &prodnue);
+                fflush(stdin);
+                printf("Ingresa el precio unitario de venta del neuvo prodcuto: ");
+                scanf("%f", &ventnue);
+                fflush(stdin);
+                gananue = ((ventnue - prodnue) * cantnue);
+                fprintf(temporal, "%s; ", nomnue);
+                fprintf(temporal, "%d; ", cantnue);
+                fprintf(temporal, "%.2f; ", prodnue);
+                fprintf(temporal, "%.2f; ", ventnue);
+                fprintf(temporal, "%.2f", gananue);
+                fprintf(temporal, "\n");
+            }
+            else{
+                fprintf(temporal,"%s",linea);
+            }
+            cont3++;
         }
         fclose(archivo);
         fclose(temporal);
