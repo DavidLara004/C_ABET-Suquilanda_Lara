@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 struct datos
 {
     char nombre[20];
@@ -11,7 +12,7 @@ struct datos
 int main()
 {
     struct datos p[3];
-    char nom[20], nomnue[20], linea[100], lineatemp[100];
+    char nom[20], nomnue[20], linea[100], lineatiemp[50];
     int cant, cantnue, filborr, filmod, cont = 0, cont2 = 1, cont3 = 1;
     float prod, prodnue, vent, ventnue, gana[3], gananue;
     FILE *archivo, *temporal;
@@ -37,17 +38,27 @@ int main()
         p[i].ganancia = gana[i];
     }
     archivo = fopen("prod.csv", "w");
-    for (int i = 0; i < 3; i++)
-    {
-        fprintf(archivo, "%s; ", p[i].nombre);
-        fprintf(archivo, "%d; ", p[i].cantidad);
-        fprintf(archivo, "%.2f; ", p[i].produccion);
-        fprintf(archivo, "%.2f; ", p[i].venta);
-        fprintf(archivo, "%.2f", p[i].ganancia);
-        fprintf(archivo, "\n");
+    if(archivo){
+        time_t hora = time(NULL);  //declaracion de dato tipo 'time_t' para almacenar funcion 'time'
+        struct tm *tiempo_completo = localtime(&hora); /*Se declara un puntero tipo 'struct tm', ya que esta ultima permitira colocar el tiempo almacenado en la variable
+        'hora' declara anteriormente, de manera tal que se ordenara en "anio: mes: dia: horas: minutos: segundos" */
+        for (int i = 0; i < 3; i++)
+        {
+            strftime(lineatiemp,sizeof(lineatiemp),"%Y-%m-%d %H:%M:%S",tiempo_completo); /*se utiliza la función strftime para formatear el tiempo almacenado en el
+            puntero tipo struct, para obtener la forma de "%Anio-%mes-%dia %hora:%minutos:%segundo". Este formato se guardara en el string 'lineatemp', que posteriormente
+            se almacenara junto a los otros datos del archivo al final de cada linea.*/
+            fprintf(archivo, "%s; ", p[i].nombre);
+            fprintf(archivo, "%d; ", p[i].cantidad);
+            fprintf(archivo, "%.2f; ", p[i].produccion);
+            fprintf(archivo, "%.2f; ", p[i].venta);
+            fprintf(archivo, "%.2f; ", p[i].ganancia);
+            fprintf(archivo, "%s", lineatiemp);
+            fprintf(archivo, "\n");
+        }
+        fclose(archivo);
     }
-    fclose(archivo);
-
+        
+    
     // Impresion de filas de datos
     archivo = fopen("prod.csv", "r");
     if (archivo)
@@ -99,10 +110,17 @@ int main()
     scanf("%d", &filmod);
     if (archivo && temporal)
     {
+        /*Se vuelve a ocupar el proceso de declaracion, asginacion y formateo de tiempo local dentro de este bloque de codigo con el fin de añadirle a los datos de la
+        fila actualizada un tiempo actual*/
+        time_t hora = time(NULL); 
+        struct tm *tiempo_completo = localtime(&hora);
+        strftime(lineatiemp,sizeof(lineatiemp),"%Y-%m-%d %H:%M:%S",tiempo_completo);
+
         while (fgets(linea, sizeof(linea), archivo))
         {
             if (cont3 == filmod)
             {
+                
                 printf("A continuacion ingrese los nuevos que desea reemplazar con la modificacion\n");
                 printf("Ingresa el nombre del nuevo producto: ");
                 scanf("%s", &nomnue);
@@ -121,7 +139,8 @@ int main()
                 fprintf(temporal, "%d; ", cantnue);
                 fprintf(temporal, "%.2f; ", prodnue);
                 fprintf(temporal, "%.2f; ", ventnue);
-                fprintf(temporal, "%.2f", gananue);
+                fprintf(temporal, "%.2f; ", gananue);
+                fprintf(temporal, "%s", lineatiemp);
                 fprintf(temporal, "\n");
             }
             else{
