@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
 struct datos
 {
     char nombre[20];
@@ -8,23 +9,42 @@ struct datos
     float produccion;
     float venta;
     float ganancia;
+    time_t fechaHora;
 };
+
+void obtenerFechaHora(time_t *t)
+{
+    time(t);
+}
+
+void imprimirFechaHora(time_t t)
+{
+    struct tm *infoTiempo;
+    char buffer[80];
+
+    infoTiempo = localtime(&t);
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", infoTiempo);
+    printf("Fecha y Hora: %s\n", buffer);
+}
+
 int main()
 {
     struct datos p[3];
-    char nom[20], nomnue[20], linea[100], lineatiemp[50];
+    char nom[20], nomnue[20], linea[100], lineatiemp[50], buscador[20];
+    char *sep = ";";
     int cant, cantnue, filborr, filmod, cont = 0, cont2 = 1, cont3 = 1;
     float prod, prodnue, vent, ventnue, gana[3], gananue;
     FILE *archivo, *temporal;
-    for (int i = 0; i < 3; i++)
+
+    for (int i = 0; i < 2; i++)
     {
-        printf("Ingresa el nombre del produccto: ");
-        scanf("%s", &nom);
+        printf("Ingresa el nombre del producto: ");
+        scanf("%s", nom);
         fflush(stdin);
         printf("Ingresa la cantidad de productos: ");
         scanf("%d", &cant);
         fflush(stdin);
-        printf("Ingresa el precio unitario de produccion: ");
+        printf("Ingresa el precio unitario de producción: ");
         scanf("%f", &prod);
         fflush(stdin);
         printf("Ingresa el precio unitario de venta: ");
@@ -36,17 +56,15 @@ int main()
         p[i].produccion = prod;
         p[i].venta = vent;
         p[i].ganancia = gana[i];
+        obtenerFechaHora(&p[i].fechaHora); // Obtener la fecha y hora actual
     }
-    archivo = fopen("prod.csv", "w");
-    if(archivo){
-        time_t hora = time(NULL);  //declaracion de dato tipo 'time_t' para almacenar funcion 'time'
-        struct tm *tiempo_completo = localtime(&hora); /*Se declara un puntero tipo 'struct tm', ya que esta ultima permitira colocar el tiempo almacenado en la variable
-        'hora' declara anteriormente, de manera tal que se ordenara en "anio: mes: dia: horas: minutos: segundos" */
-        for (int i = 0; i < 3; i++)
+
+    archivo = fopen("prod.csv", "a");
+    if (archivo)
+    {
+        for (int i = 0; i < 2; i++)
         {
-            strftime(lineatiemp,sizeof(lineatiemp),"%Y-%m-%d %H:%M:%S",tiempo_completo); /*se utiliza la función strftime para formatear el tiempo almacenado en el
-            puntero tipo struct, para obtener la forma de "%Anio-%mes-%dia %hora:%minutos:%segundo". Este formato se guardara en el string 'lineatemp', que posteriormente
-            se almacenara junto a los otros datos del archivo al final de cada linea.*/
+            strftime(lineatiemp, sizeof(lineatiemp), "%Y-%m-%d %H:%M:%S", localtime(&p[i].fechaHora));
             fprintf(archivo, "%s; ", p[i].nombre);
             fprintf(archivo, "%d; ", p[i].cantidad);
             fprintf(archivo, "%.2f; ", p[i].produccion);
@@ -57,27 +75,47 @@ int main()
         }
         fclose(archivo);
     }
-        
-    
-    // Impresion de filas de datos
-    archivo = fopen("prod.csv", "r");
+    else
+    {
+        printf("Error al abrir el archivo.\n");
+    }
+
+    // Búsqueda de datos
+     archivo = fopen("prod.csv", "r");
+    printf("Ingrese el nombre del producto que desea buscar: ");
+    scanf("%s", buscador);
+    fflush(stdin);
     if (archivo)
     {
+        printf("Los datos del producto buscado son:\n");
         while (fgets(linea, sizeof(linea), archivo))
         {
-            if (linea[strlen(linea) - 1] == '\n')
+            char *token = strtok(linea, sep);
+            if (strcmp(buscador, token) == 0)
             {
-                linea[strlen(linea) - 1] = '\0';
+                printf("%s;", token);
+                token = strtok(NULL, sep);
+                printf("%s;", token);
+                token = strtok(NULL, sep);
+                printf("%s;", token);
+                token = strtok(NULL, sep);
+                printf("%s;", token);
+                token = strtok(NULL, sep);
+                printf("%s;", token);
+                token = strtok(NULL, sep);
+                printf("%s", token);
+                break;
             }
-            printf("%s\n", linea);
-            cont++;
         }
         fclose(archivo);
     }
-
+    else
+    {
+        printf("Error al abrir el archivo.\n");
+    }
     // borrado de fila
     archivo = fopen("prod.csv", "r");
-    temporal = fopen("temporal.csv", "w");
+    temporal = fopen("temporal.csv", "a");
     printf("Ingrese el numero de linea que desea eliminar: ");
     scanf("%d", &filborr);
     if (archivo && temporal)
@@ -102,7 +140,6 @@ int main()
         remove("prod.csv");
         rename("temporal.csv", "prod.csv");
     }
-
     // Modificacion de filas:
     archivo = fopen("prod.csv", "r");
     temporal = fopen("temporal.csv", "w");
@@ -112,15 +149,15 @@ int main()
     {
         /*Se vuelve a ocupar el proceso de declaracion, asginacion y formateo de tiempo local dentro de este bloque de codigo con el fin de añadirle a los datos de la
         fila actualizada un tiempo actual*/
-        time_t hora = time(NULL); 
+        time_t hora = time(NULL);
         struct tm *tiempo_completo = localtime(&hora);
-        strftime(lineatiemp,sizeof(lineatiemp),"%Y-%m-%d %H:%M:%S",tiempo_completo);
+        strftime(lineatiemp, sizeof(lineatiemp), "%Y-%m-%d %H:%M:%S", tiempo_completo);
 
         while (fgets(linea, sizeof(linea), archivo))
         {
             if (cont3 == filmod)
             {
-                
+
                 printf("A continuacion ingrese los nuevos que desea reemplazar con la modificacion\n");
                 printf("Ingresa el nombre del nuevo producto: ");
                 scanf("%s", &nomnue);
@@ -143,8 +180,9 @@ int main()
                 fprintf(temporal, "%s", lineatiemp);
                 fprintf(temporal, "\n");
             }
-            else{
-                fprintf(temporal,"%s",linea);
+            else
+            {
+                fprintf(temporal, "%s", linea);
             }
             cont3++;
         }
