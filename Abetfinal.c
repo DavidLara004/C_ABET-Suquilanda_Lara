@@ -1,195 +1,282 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-struct datos
+#define MAX_NOMBRE 20
+
+struct Producto
 {
-    char nombre[20];
+    char nombre[MAX_NOMBRE];
     int cantidad;
     float produccion;
     float venta;
     float ganancia;
-    time_t fechaHora;
+    char fechaHora[20];  // Cambiamos el tipo a char[]
 };
 
-void obtenerFechaHora(time_t *t)
+void obtenerFechaHora(char *fechaHora)
 {
-    time(t);
+    time_t hora = time(NULL);
+    struct tm *tiempo_completo = localtime(&hora);
+    strftime(fechaHora, 20, "%Y-%m-%d %H:%M:%S", tiempo_completo);
+
 }
 
-void imprimirFechaHora(time_t t)
+void imprimirFechaHora(const char *fechaHora)
 {
-    struct tm *infoTiempo;
-    char buffer[80];
+    printf("Fecha y Hora: %s\n", fechaHora);
+}
 
-    infoTiempo = localtime(&t);
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", infoTiempo);
-    printf("Fecha y Hora: %s\n", buffer);
+void ingresarProducto(struct Producto *producto)
+{
+    printf("Ingresa el nombre del producto: ");
+    scanf("%s", producto->nombre);
+    fflush(stdin);
+
+    printf("Ingresa la cantidad de productos: ");
+    scanf("%d", &producto->cantidad);
+    fflush(stdin);
+
+    printf("Ingresa el precio unitario de produccion: ");
+    scanf("%f", &producto->produccion);
+    fflush(stdin);
+
+    printf("Ingresa el precio unitario de venta: ");
+    scanf("%f", &producto->venta);
+    fflush(stdin);
+
+    producto->ganancia = (producto->venta - producto->produccion) * producto->cantidad;
+
+    obtenerFechaHora(producto->fechaHora);
+}
+
+void agregarProducto(FILE *archivo, const struct Producto *producto)
+{
+    fprintf(archivo, "%s;%d;%.2f;%.2f;%.2f;%s\n",
+            producto->nombre, producto->cantidad, producto->produccion,
+            producto->venta, producto->ganancia, producto->fechaHora);
+}
+
+void buscarProducto(const char *nombre)
+{
+    FILE *archivo = fopen("prod.csv", "r");
+    char linea[100];
+
+    if (archivo)
+    {
+        while (fgets(linea, sizeof(linea), archivo))
+        {
+            char *token = strtok(linea, ";");
+            if (strcmp(nombre, token) == 0)
+            {
+                printf("Producto encontrado:\n");
+                printf("%s;", token);
+
+                token = strtok(NULL, ";");
+                printf("%s;", token);
+
+                token = strtok(NULL, ";");
+                printf("%s;", token);
+
+                token = strtok(NULL, ";");
+                printf("%s;", token);
+
+                token = strtok(NULL, ";");
+                printf("%s;", token);
+
+                token = strtok(NULL, "\n");
+                imprimirFechaHora(token);
+                fclose(archivo);
+                return;
+            }
+        }
+
+        printf("No se encontró el producto.\n");
+        fclose(archivo);
+    }
+    else
+    {
+        printf("Error al abrir el archivo.\n");
+    }
+}
+
+void eliminarProducto(int linea)
+{
+    FILE *archivo = fopen("prod.csv", "r");
+    FILE *temporal = fopen("temporal.csv", "w");
+    char lineaActual[100];
+    int numeroLinea = 1;
+
+    if (archivo && temporal)
+    {
+        while (fgets(lineaActual, sizeof(lineaActual), archivo))
+        {
+            if (numeroLinea != linea)
+            {
+                fprintf(temporal, "%s", lineaActual);
+            }
+            else
+            {
+                printf("La linea numero %d: '%s' ha sido eliminada\n", linea, lineaActual);
+            }
+            numeroLinea++;
+        }
+
+        fclose(archivo);
+        fclose(temporal);
+        remove("prod.csv");
+        rename("temporal.csv", "prod.csv");
+    }
+    else
+    {
+        printf("Error al abrir los archivos.\n");
+    }
+}
+
+void modificarProducto(int linea)
+{
+    FILE *archivo = fopen("prod.csv", "r");
+    FILE *temporal = fopen("temporal.csv", "w");
+    char lineaActual[100];
+    char nuevoNombre[MAX_NOMBRE];
+    int nuevaCantidad;
+    float nuevaProduccion, nuevaVenta;
+    int numeroLinea = 1;
+
+    if (archivo && temporal)
+    {
+        while (fgets(lineaActual, sizeof(lineaActual), archivo))
+        {
+            if (numeroLinea == linea)
+            {
+                printf("A continuacion, ingrese los nuevos datos para la modificacion:\n");
+
+                printf("Ingresa el nombre del nuevo producto: ");
+                scanf("%s", nuevoNombre);
+                fflush(stdin);
+
+                printf("Ingresa la cantidad de elementos del nuevo producto: ");
+                scanf("%d", &nuevaCantidad);
+                fflush(stdin);
+
+                printf("Ingresa el precio unitario del nuevo producto: ");
+                scanf("%f", &nuevaProduccion);
+                fflush(stdin);
+
+                printf("Ingresa el precio unitario de venta del nuevo producto: ");
+                scanf("%f", &nuevaVenta);
+                fflush(stdin);
+
+                struct Producto producto;
+                strcpy(producto.nombre, nuevoNombre);
+                producto.cantidad = nuevaCantidad;
+                producto.produccion = nuevaProduccion;
+                producto.venta = nuevaVenta;
+                producto.ganancia = (producto.venta - producto.produccion) * producto.cantidad;
+                obtenerFechaHora(&producto.fechaHora);
+
+                agregarProducto(temporal, &producto);
+            }
+            else
+            {
+                fprintf(temporal, "%s", lineaActual);
+            }
+            numeroLinea++;
+        }
+
+        fclose(archivo);
+        fclose(temporal);
+        remove("prod.csv");
+        rename("temporal.csv", "prod.csv");
+    }
+    else
+    {
+        printf("Error al abrir los archivos.\n");
+    }
 }
 
 int main()
 {
-    struct datos p[3];
-    char nom[20], nomnue[20], linea[100], lineatiemp[50], buscador[20];
-    char *sep = ";";
-    int cant, cantnue, filborr, filmod, cont = 0, cont2 = 1, cont3 = 1;
-    float prod, prodnue, vent, ventnue, gana[3], gananue;
-    FILE *archivo, *temporal;
+    int opcion;
+    int cantimax;
+    printf("Antes de iniciar, coloque cuantos productos se ingresaran el dia de hoy:\n ");
+    scanf("%d", &cantimax);
+    struct Producto productos[cantimax];
 
-    for (int i = 0; i < 2; i++)
+    do
     {
-        printf("Ingresa el nombre del producto: ");
-        scanf("%s", nom);
-        fflush(stdin);
-        printf("Ingresa la cantidad de productos: ");
-        scanf("%d", &cant);
-        fflush(stdin);
-        printf("Ingresa el precio unitario de producción: ");
-        scanf("%f", &prod);
-        fflush(stdin);
-        printf("Ingresa el precio unitario de venta: ");
-        scanf("%f", &vent);
-        fflush(stdin);
-        gana[i] = ((vent - prod) * cant);
-        strcpy(p[i].nombre, nom);
-        p[i].cantidad = cant;
-        p[i].produccion = prod;
-        p[i].venta = vent;
-        p[i].ganancia = gana[i];
-        obtenerFechaHora(&p[i].fechaHora); // Obtener la fecha y hora actual
-    }
+        printf("\n========== Menu Principal ==========\n");
+        printf("1. Ingresar productos\n");
+        printf("2. Buscar producto\n");
+        printf("3. Eliminar producto\n");
+        printf("4. Modificar producto\n");
+        printf("0. Salir\n");
+        printf("=====================================\n");
+        printf("Ingrese una opcion: ");
+        scanf("%d", &opcion);
 
-    archivo = fopen("prod.csv", "a");
-    if (archivo)
-    {
-        for (int i = 0; i < 2; i++)
+        switch (opcion)
         {
-            strftime(lineatiemp, sizeof(lineatiemp), "%Y-%m-%d %H:%M:%S", localtime(&p[i].fechaHora));
-            fprintf(archivo, "%s; ", p[i].nombre);
-            fprintf(archivo, "%d; ", p[i].cantidad);
-            fprintf(archivo, "%.2f; ", p[i].produccion);
-            fprintf(archivo, "%.2f; ", p[i].venta);
-            fprintf(archivo, "%.2f; ", p[i].ganancia);
-            fprintf(archivo, "%s", lineatiemp);
-            fprintf(archivo, "\n");
-        }
-        fclose(archivo);
-    }
-    else
-    {
-        printf("Error al abrir el archivo.\n");
-    }
-
-    // Búsqueda de datos
-     archivo = fopen("prod.csv", "r");
-    printf("Ingrese el nombre del producto que desea buscar: ");
-    scanf("%s", buscador);
-    fflush(stdin);
-    if (archivo)
-    {
-        printf("Los datos del producto buscado son:\n");
-        while (fgets(linea, sizeof(linea), archivo))
-        {
-            char *token = strtok(linea, sep);
-            if (strcmp(buscador, token) == 0)
+        case 1:
+            for (int i = 0; i < cantimax; i++)
             {
-                printf("%s;", token);
-                token = strtok(NULL, sep);
-                printf("%s;", token);
-                token = strtok(NULL, sep);
-                printf("%s;", token);
-                token = strtok(NULL, sep);
-                printf("%s;", token);
-                token = strtok(NULL, sep);
-                printf("%s;", token);
-                token = strtok(NULL, sep);
-                printf("%s", token);
-                break;
+                printf("=== Ingrese los datos del Producto %d ===\n", i + 1);
+                ingresarProducto(&productos[i]);
+                printf("\n");
             }
-        }
-        fclose(archivo);
-    }
-    else
-    {
-        printf("Error al abrir el archivo.\n");
-    }
-    // borrado de fila
-    archivo = fopen("prod.csv", "r");
-    temporal = fopen("temporal.csv", "a");
-    printf("Ingrese el numero de linea que desea eliminar: ");
-    scanf("%d", &filborr);
-    if (archivo && temporal)
-    {
-        while (fgets(linea, sizeof(linea), archivo))
-        {
-            if (cont2 != filborr)
+
+            FILE *archivo = fopen("prod.csv", "a");
+            if (archivo)
             {
-                fprintf(temporal, "%s", linea);
-            }
-            else
-            {
-                if (cont2 == filborr)
+                for (int i = 0; i < cantimax; i++)
                 {
-                    printf("La linea numero %d: '%s' ha sido eliminada\n", filborr, linea);
+                    agregarProducto(archivo, &productos[i]);
                 }
-            }
-            cont2++;
-        }
-        fclose(archivo);
-        fclose(temporal);
-        remove("prod.csv");
-        rename("temporal.csv", "prod.csv");
-    }
-    // Modificacion de filas:
-    archivo = fopen("prod.csv", "r");
-    temporal = fopen("temporal.csv", "w");
-    printf("Ingrese el numero de linea que desea modificar: ");
-    scanf("%d", &filmod);
-    if (archivo && temporal)
-    {
-        /*Se vuelve a ocupar el proceso de declaracion, asginacion y formateo de tiempo local dentro de este bloque de codigo con el fin de añadirle a los datos de la
-        fila actualizada un tiempo actual*/
-        time_t hora = time(NULL);
-        struct tm *tiempo_completo = localtime(&hora);
-        strftime(lineatiemp, sizeof(lineatiemp), "%Y-%m-%d %H:%M:%S", tiempo_completo);
-
-        while (fgets(linea, sizeof(linea), archivo))
-        {
-            if (cont3 == filmod)
-            {
-
-                printf("A continuacion ingrese los nuevos que desea reemplazar con la modificacion\n");
-                printf("Ingresa el nombre del nuevo producto: ");
-                scanf("%s", &nomnue);
-                fflush(stdin);
-                printf("Ingresa la cantidad de elementos del nuevo producto: ");
-                scanf("%d", &cantnue);
-                fflush(stdin);
-                printf("Ingresa el precio unitario del nuevo produccto: ");
-                scanf("%f", &prodnue);
-                fflush(stdin);
-                printf("Ingresa el precio unitario de venta del neuvo prodcuto: ");
-                scanf("%f", &ventnue);
-                fflush(stdin);
-                gananue = ((ventnue - prodnue) * cantnue);
-                fprintf(temporal, "%s; ", nomnue);
-                fprintf(temporal, "%d; ", cantnue);
-                fprintf(temporal, "%.2f; ", prodnue);
-                fprintf(temporal, "%.2f; ", ventnue);
-                fprintf(temporal, "%.2f; ", gananue);
-                fprintf(temporal, "%s", lineatiemp);
-                fprintf(temporal, "\n");
+                fclose(archivo);
             }
             else
             {
-                fprintf(temporal, "%s", linea);
+                printf("Error al abrir el archivo.\n");
             }
-            cont3++;
+            break;
+
+        case 2:
+        {
+            char nombreBusqueda[MAX_NOMBRE];
+            printf("Ingrese el nombre del producto que desea buscar: ");
+            scanf("%s", nombreBusqueda);
+            buscarProducto(nombreBusqueda);
         }
-        fclose(archivo);
-        fclose(temporal);
-        remove("prod.csv");
-        rename("temporal.csv", "prod.csv");
-    }
+        break;
+
+        case 3:
+        {
+            int lineaEliminar;
+            printf("Ingrese el numero de linea quedesea eliminar: ");
+            scanf("%d", &lineaEliminar);
+            eliminarProducto(lineaEliminar);
+        }
+        break;
+
+        case 4:
+        {
+            int lineaModificar;
+            printf("Ingrese el numero de linea que desea modificar: ");
+            scanf("%d", &lineaModificar);
+            modificarProducto(lineaModificar);
+        }
+        break;
+
+        case 0:
+            printf("Saliendo del programa...\n");
+            break;
+
+        default:
+            printf("Opcion invalida. Intente de nuevo.\n");
+            break;
+        }
+    } while (opcion != 0);
+
     return 0;
 }
