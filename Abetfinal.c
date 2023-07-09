@@ -1,10 +1,12 @@
+//Librerias necesarias para las funciones utilizadas en el programa
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#define MAX_NOMBRE 20
+#define MAX_NOMBRE 20 //Definimos una constante que tenga el maximo de caracteres permitidos en el nombre
 
+// Definicion de la estructura Producto
 struct Producto
 {
     char nombre[MAX_NOMBRE];
@@ -12,22 +14,24 @@ struct Producto
     float produccion;
     float venta;
     float ganancia;
-    char fechaHora[20];  // Cambiamos el tipo a char[]
+    char fechaHora[20];  // Cambiamos el tipo a char[] para almacenar la fecha y hora como un string
 };
 
+// Funcion para obtener la fecha y hora actual y guardarla como un string
 void obtenerFechaHora(char *fechaHora)
 {
     time_t hora = time(NULL);
     struct tm *tiempo_completo = localtime(&hora);
     strftime(fechaHora, 20, "%Y-%m-%d %H:%M:%S", tiempo_completo);
-
 }
 
+// Funcion para imprimir la fecha y hora desde un string
 void imprimirFechaHora(const char *fechaHora)
 {
     printf("Fecha y Hora: %s\n", fechaHora);
 }
 
+// Funcion para ingresar los datos de un producto
 void ingresarProducto(struct Producto *producto)
 {
     printf("Ingresa el nombre del producto: ");
@@ -51,6 +55,7 @@ void ingresarProducto(struct Producto *producto)
     obtenerFechaHora(producto->fechaHora);
 }
 
+// Funcion para agregar un producto al archivo  
 void agregarProducto(FILE *archivo, const struct Producto *producto)
 {
     fprintf(archivo, "%s;%d;%.2f;%.2f;%.2f;%s\n",
@@ -58,6 +63,7 @@ void agregarProducto(FILE *archivo, const struct Producto *producto)
             producto->venta, producto->ganancia, producto->fechaHora);
 }
 
+// Funcion para buscar un producto por nombre en el archivo
 void buscarProducto(const char *nombre)
 {
     FILE *archivo = fopen("prod.csv", "r");
@@ -92,7 +98,7 @@ void buscarProducto(const char *nombre)
             }
         }
 
-        printf("No se encontró el producto.\n");
+        printf("No se encontro el producto.\n");
         fclose(archivo);
     }
     else
@@ -101,6 +107,7 @@ void buscarProducto(const char *nombre)
     }
 }
 
+// Funcion para eliminar un producto del archivo por linea
 void eliminarProducto(int linea)
 {
     FILE *archivo = fopen("prod.csv", "r");
@@ -134,6 +141,7 @@ void eliminarProducto(int linea)
     }
 }
 
+// Funcion para modificar un producto del archivo por linea
 void modificarProducto(int linea)
 {
     FILE *archivo = fopen("prod.csv", "r");
@@ -174,7 +182,7 @@ void modificarProducto(int linea)
                 producto.produccion = nuevaProduccion;
                 producto.venta = nuevaVenta;
                 producto.ganancia = (producto.venta - producto.produccion) * producto.cantidad;
-                obtenerFechaHora(&producto.fechaHora);
+                obtenerFechaHora(producto.fechaHora);
 
                 agregarProducto(temporal, &producto);
             }
@@ -196,17 +204,20 @@ void modificarProducto(int linea)
     }
 }
 
+// Funcion principal
 int main()
 {
     int opcion;
     int cantimax;
-    printf("Antes de iniciar, coloque cuantos productos se ingresaran el dia de hoy:\n ");
+    printf("Antes de iniciar, coloque cuantos productos se ingresaran hoy:\n ");
     scanf("%d", &cantimax);
     struct Producto productos[cantimax];
-
+//Creacion del menu con Switch case
     do
     {
         printf("\n========== Menu Principal ==========\n");
+        printf("La informacion que usted busque o coloque se dispondra de la siguiente manera: \n");
+        printf("NOMBRE; CANTIDAD; PRECIO UNITARIO; PRECIO VENTA; GANANCIA; HORA \n");
         printf("1. Ingresar productos\n");
         printf("2. Buscar producto\n");
         printf("3. Eliminar producto\n");
